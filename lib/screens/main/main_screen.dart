@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:product_app/models/product_model.dart';
+import 'package:product_app/repository/product_repository.dart';
+import 'package:product_app/screens/main/cubit/main_cubit.dart';
+import 'package:product_app/screens/main/widgets/product_card.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -10,38 +16,56 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _counter = 0;
+  late final MainCubit _cubit;
 
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
+  @override
+  void initState() {
+    _cubit = MainCubit(productRepository: context.read<ProductRepository>());
+    _cubit.loadProducts();
+    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Title'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(40),
+        child: AppBar(
+          title: const Text(
+            'Products',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 24,
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-          ],
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+      backgroundColor: Colors.grey[300],
+      body: BlocBuilder(
+        bloc: _cubit,
+        builder: (context, state) {
+          if (state is MainProductsLoadedState) {
+            final List<Product> products = state.products;
+            return Padding(
+              padding: const EdgeInsets.all(10),
+              child: MasonryGridView.count(
+                  itemCount: products.length,
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  itemBuilder: (context, index) {
+                    final Product product = products[index];
+                    return ProductCard(product: product);
+                  }),
+            );
+          } else {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+        },
       ),
     );
   }
